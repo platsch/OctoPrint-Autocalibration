@@ -1,0 +1,27 @@
+<h4>Backlash autocalibration plugin</h4>
+This plugin calibrates X/Y/Z-axis backlash by actively probing the endstops<br><br>
+
+<strong>Connection Status: <span style="color: green" data-bind="visible: isConnected()">connected</span>
+<span style="color: red" data-bind="visible: !isConnected()">not connected</span></strong><br>
+
+Your machine is <span style="color: red" data-bind="visible: isConnected() && !isRepetierFirmware()">not</span> Repetier Firmware based<br>
+<br>
+
+
+<form class="form-horizontal">
+    <button data-bind="enabled: isRepetierFirmware && isConnected, click: calibrateX">{{ _('Calibrate X-axis') }}</button>
+   <!--- <button data-bind="enabled: isRepetierFirmware, click: loadEeprom">{{ _('Load EEprom') }}</button>
+    <button data-bind="enabled: isRepetierFirmware, click: saveEeprom">{{ _('Save EEprom') }}</button> -->
+    <br><br><strong>Progress: </strong><span data-bind="text: statusMessage"></span><br>
+</form>
+
+<div data-bind="foreach: eepromData">
+    <form class="form-horizontal">
+        <div class="control-group">
+            <label class="control-label" style="width: 300px" data-bind="text: description, attr: { 'for': position }"></label>
+            <div class="controls" style="margin-left: 320px; width: 30%" >
+                <input type="text" class="input-block-level" data-bind="value: value, attr: { 'id': position }">
+            </div>
+        </div>
+    </form>
+</div>

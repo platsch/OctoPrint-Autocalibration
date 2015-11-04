@@ -75,7 +75,7 @@ $(function() {
                         if (new RegExp(self.M119RegExL).test(line)) {
                             self._calibrateIteration(false);
                         }
-                    //}
+                    }
                 });
             }
         };
@@ -101,7 +101,7 @@ $(function() {
             self.currentAxis = axis;
             self.currentInterval = 0.0;
 
-            setTimeout(self._calibrateFirstIteration(""), 5000);
+            setTimeout(self._calibrateFirstIteration(), 5000);
         }
 
         self._calibrateFirstIteration = function() {
@@ -168,7 +168,7 @@ $(function() {
         };
 
         self._getEepromValue = function(description) {
-            self.statusMessage(description);
+            self.statusMessage("_getEepromValue " + description);
             var eepromData = self.eepromData();
             var result = false;
             _.each(eepromData, function(data) {
@@ -180,7 +180,7 @@ $(function() {
         }
 
         self._setEepromValue = function(description, value) {
-            self.statusMessage(description);
+            self.statusMessage("_setEepromValue " + description);
             var eepromData = self.eepromData();
             var result = false;
             _.each(eepromData, function(data) {

@@ -143,6 +143,8 @@ $(function() {
                 self.M119RegExH = "";
                 self.M119RegExL = "";
                 self.statusMessage("set backlash to " + 1.0-self.currentInterval);
+                //absolute positioning
+                self.control.sendCustomCommand({ command: "M82"});
 
             }else{ //endstop not triggered, keep moving
                 self.control.sendCustomCommand({ command: "G1 " + axis + self.currentSign*-0.1 + " F500"});

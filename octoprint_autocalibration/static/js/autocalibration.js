@@ -81,7 +81,7 @@ $(function() {
                         if (new RegExp(self.M119RegExMinL).test(line)) {
                             self._calibrateIteration(1, false);
                         }
-                        if (new RegExp(self.M119RegExMinL).test(line)) {
+                        if (new RegExp(self.M119RegExMaxL).test(line)) {
                             self._calibrateIteration(-1, false);
                         }
                     }
@@ -124,9 +124,6 @@ $(function() {
             self.statusMessage("Run calibration");
             self._setEepromValue(self.currentAxis + " backlash", 0.0);
             self.saveEeprom();
-
-            var homePos = self._getEepromValue(self.currentAxis + " home pos");
-            var maxLength = self._getEepromValue(self.currentAxis + " max length");
 
                 self.M119RegExMinH = self.currentAxis.toLowerCase() + "_min:H";
                 self.M119RegExMaxH = self.currentAxis.toLowerCase() + "_max:H";

@@ -106,6 +106,7 @@ $(function() {
 
         self._calibrateFirstIteration = function() {
             //set calibration to 0
+            self.statusMessage("Run calibration");
             self._setEepromValue(self.currentAxis + " backlash", 0.0);
             self.saveEeprom();
 
@@ -146,7 +147,7 @@ $(function() {
             
             if(endstopStatus) { //endstop triggered, found maximum
                 //write new backlash to eeprom
-                var newBacklash = 1.0-self.currentInterval;
+                var newBacklash = Math.round((1.0-self.currentInterval) * 10000) / 10000);
                 self._setEepromValue(self.currentAxis + " backlash", newBacklash);
                 self.saveEeprom();
                 self.currentAxis = "";
@@ -163,6 +164,7 @@ $(function() {
                 self.control.sendCustomCommand({ command: "M400" });
                 self.control.sendCustomCommand({ command: "G4 P0" });
                 self.control.sendCustomCommand({ command: "M119" });
+                self.statusMessage(self.statusMessage() + ".");
             }
         }
 

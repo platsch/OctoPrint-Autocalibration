@@ -28,7 +28,6 @@ $(function() {
 
         self.currentAxis = "";
         self.currentInterval = 0;
-        self.firstIteration = false;
 
         self.onStartup = function() {
             $('#settings_plugin_autocalibration_link a').on('show', function(e) {
@@ -139,46 +138,31 @@ $(function() {
             self.control.sendCustomCommand({ command: "M400"});
             self.control.sendCustomCommand({ command: "M400"});
 
-            self.firstIteration = true;
             //trigger endstop check
             self.control.sendCustomCommand({ command: "M119"});
         }
 
         self._calibrateIteration = function(sign, endstopStatus) {
-        
-            if(self.firstIteration) {
-            //move 1mm back from endstop
-            self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign*1.0 + " F500"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.firstIteration = false;    
-            self.control.sendCustomCommand({ command: "M119"});
-            }else{
-                if(endstopStatus) { //endstop triggered, found maximum
-                    //write new backlash to eeprom
-                    var newBacklash = Math.round((1.0-self.currentInterval) * 10000) / 10000;
-                    self._setEepromValue(self.currentAxis + " backlash", newBacklash);
-                    self.saveEeprom();
-                    self.currentAxis = "";
-                    self.M119RegExMinH = "";
-                    self.M119RegExMaxH = "";
-                    self.M119RegExMinL = "";
-                    self.M119RegExMaxL = "";
-                    self.statusMessage("Set backlash to " + newBacklash);
-                    //absolute positioning
-                    self.control.sendCustomCommand({ command: "G90"});
-
-                }else{ //endstop not triggered, keep moving
-                    self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign*-0.1 + " F500"});
-                    self.currentInterval += 0.1;
-                    self.control.sendCustomCommand({ command: "M400" });
-                    self.control.sendCustomCommand({ command: "G4 P0" });
-                    self.control.sendCustomCommand({ command: "M119" });
-                    self.statusMessage(self.statusMessage() + ".");
-                }
+            if(endstopStatus) { //endstop still triggered, keep moving
+                self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign + " F500"});
+                self.currentInterval += 0.1;
+                self.control.sendCustomCommand({ command: "M400" });
+                self.control.sendCustomCommand({ command: "G4 P0" });
+                self.control.sendCustomCommand({ command: "M119" });
+                self.statusMessage(self.statusMessage() + ".");
+            }else{ //endstop untriggered, found maximum
+                //write new backlash to eeprom
+                var newBacklash = Math.round((1.0-self.currentInterval) * 10000) / 10000;
+                self._setEepromValue(self.currentAxis + " backlash", newBacklash);
+                self.saveEeprom();
+                self.currentAxis = "";
+                self.M119RegExMinH = "";
+                self.M119RegExMaxH = "";
+                self.M119RegExMinL = "";
+                self.M119RegExMaxL = "";
+                self.statusMessage("Set backlash to " + newBacklash);
+                //absolute positioning
+                self.control.sendCustomCommand({ command: "G90"});
             }
         }
 

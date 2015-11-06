@@ -147,7 +147,7 @@ $(function() {
             
             if(endstopStatus) { //endstop triggered, found maximum
                 //write new backlash to eeprom
-                var newBacklash = Math.round((1.0-self.currentInterval) * 10000) / 10000);
+                var newBacklash = Math.round((1.0-self.currentInterval) * 10000) / 10000;
                 self._setEepromValue(self.currentAxis + " backlash", newBacklash);
                 self.saveEeprom();
                 self.currentAxis = "";

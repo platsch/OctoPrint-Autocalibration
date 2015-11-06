@@ -163,7 +163,6 @@ $(function() {
                 self.control.sendCustomCommand({ command: "M400" });
                 self.control.sendCustomCommand({ command: "G4 P0" });
                 self.control.sendCustomCommand({ command: "M119" });
-                self.statusMessage("currentInterval: " + self.currentInterval);
             }
         }
 

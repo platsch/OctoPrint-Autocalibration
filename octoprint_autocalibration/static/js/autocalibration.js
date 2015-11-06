@@ -10,8 +10,10 @@ $(function() {
 
         self.eepromDataRegEx = /EPR:(\d+) (\d+) ([^\s]+) (.+)/;
 
-        self.M119RegExH = "";
-        self.M119RegExL= "";
+        self.M119RegExMinH = "";
+        self.M119RegExMaxH = "";
+        self.M119RegExMinL= "";
+        self.M119RegExMaxL= "";
 
         self.isRepetierFirmware = ko.observable(false);
 
@@ -25,8 +27,8 @@ $(function() {
         self.statusMessage = ko.observable("");
 
         self.currentAxis = "";
-        self.currentSign = 0;
         self.currentInterval = 0;
+        self.firstIteration = false;
 
         self.onStartup = function() {
             $('#settings_plugin_autocalibration_link a').on('show', function(e) {
@@ -68,12 +70,19 @@ $(function() {
                             description: match[4]
                         });
                     }
-                    if(self.M119RegExH != "" && self.currentAxis != "") {
-                        if (new RegExp(self.M119RegExH).test(line)) {
-                            self._calibrateIteration(true);
+                    //ugly workaround...
+                    if(self.M119RegExMinH != "" && self.currentAxis != "") {
+                        if (new RegExp(self.M119RegExMinH).test(line)) {
+                            self._calibrateIteration(1, true);
                         }
-                        if (new RegExp(self.M119RegExL).test(line)) {
-                            self._calibrateIteration(false);
+                        if (new RegExp(self.M119RegExMaxH).test(line)) {
+                            self._calibrateIteration(-1, true);
+                        }
+                        if (new RegExp(self.M119RegExMinL).test(line)) {
+                            self._calibrateIteration(1, false);
+                        }
+                        if (new RegExp(self.M119RegExMinL).test(line)) {
+                            self._calibrateIteration(-1, false);
                         }
                     }
                 });
@@ -119,17 +128,11 @@ $(function() {
             var homePos = self._getEepromValue(self.currentAxis + " home pos");
             var maxLength = self._getEepromValue(self.currentAxis + " max length");
 
-            if(homePos > maxLength/2) {
-                self.currentSign = -1;
-                self.M119RegExH = self.currentAxis.toLowerCase() + "_max:H";
-                self.M119RegExL = self.currentAxis.toLowerCase() + "_max:L";
+                self.M119RegExMinH = self.currentAxis.toLowerCase() + "_min:H";
+                self.M119RegExMaxH = self.currentAxis.toLowerCase() + "_max:H";
+                self.M119RegExMinL = self.currentAxis.toLowerCase() + "_min:L";
+                self.M119RegExMaxL = self.currentAxis.toLowerCase() + "_max:L";
                 //Recv: x_min:H y_max:H z_max:H
-
-            }else{
-                self.currentSign = 1;
-                self.M119RegExH = self.currentAxis.toLowerCase() + "_min:H";
-                self.M119RegExL = self.currentAxis.toLowerCase() + "_min:L";
-            }
 
             //relative positioning
             self.control.sendCustomCommand({ command: "G91"});
@@ -138,39 +141,47 @@ $(function() {
             self.control.sendCustomCommand({ command: "M400"});
             self.control.sendCustomCommand({ command: "M400"});
             self.control.sendCustomCommand({ command: "M400"});
-            //move 1mm back from endstop
-            self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + self.currentSign*1.0 + " F500"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
+
+            self.firstIteration = true;
             //trigger endstop check
             self.control.sendCustomCommand({ command: "M119"});
         }
 
-        self._calibrateIteration = function(endstopStatus) {
-            
-            if(endstopStatus) { //endstop triggered, found maximum
-                //write new backlash to eeprom
-                var newBacklash = Math.round((1.0-self.currentInterval) * 10000) / 10000;
-                self._setEepromValue(self.currentAxis + " backlash", newBacklash);
-                self.saveEeprom();
-                self.currentAxis = "";
-                self.currentSign = 0;
-                self.M119RegExH = "";
-                self.M119RegExL = "";
-                self.statusMessage("Set backlash to " + newBacklash);
-                //absolute positioning
-                self.control.sendCustomCommand({ command: "G90"});
+        self._calibrateIteration = function(sign, endstopStatus) {
+        
+            if(self.firstIteration) {
+            //move 1mm back from endstop
+            self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign*1.0 + " F500"});
+            self.control.sendCustomCommand({ command: "M400"});
+            self.control.sendCustomCommand({ command: "M400"});
+            self.control.sendCustomCommand({ command: "M400"});
+            self.control.sendCustomCommand({ command: "M400"});
+            self.control.sendCustomCommand({ command: "M400"});
+            self.firstIteration = false;    
+            self.control.sendCustomCommand({ command: "M119"});
+            }else{
+                if(endstopStatus) { //endstop triggered, found maximum
+                    //write new backlash to eeprom
+                    var newBacklash = Math.round((1.0-self.currentInterval) * 10000) / 10000;
+                    self._setEepromValue(self.currentAxis + " backlash", newBacklash);
+                    self.saveEeprom();
+                    self.currentAxis = "";
+                    self.M119RegExMinH = "";
+                    self.M119RegExMaxH = "";
+                    self.M119RegExMinL = "";
+                    self.M119RegExMaxL = "";
+                    self.statusMessage("Set backlash to " + newBacklash);
+                    //absolute positioning
+                    self.control.sendCustomCommand({ command: "G90"});
 
-            }else{ //endstop not triggered, keep moving
-                self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + self.currentSign*-0.1 + " F500"});
-                self.currentInterval += 0.1;
-                self.control.sendCustomCommand({ command: "M400" });
-                self.control.sendCustomCommand({ command: "G4 P0" });
-                self.control.sendCustomCommand({ command: "M119" });
-                self.statusMessage(self.statusMessage() + ".");
+                }else{ //endstop not triggered, keep moving
+                    self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign*-0.1 + " F500"});
+                    self.currentInterval += 0.1;
+                    self.control.sendCustomCommand({ command: "M400" });
+                    self.control.sendCustomCommand({ command: "G4 P0" });
+                    self.control.sendCustomCommand({ command: "M119" });
+                    self.statusMessage(self.statusMessage() + ".");
+                }
             }
         }
 

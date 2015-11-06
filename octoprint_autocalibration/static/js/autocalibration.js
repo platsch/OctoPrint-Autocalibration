@@ -91,6 +91,12 @@ $(function() {
         self.calibrateX = function() {
             self._calibrate("X");
         }
+        self.calibrateY = function() {
+            self._calibrate("Y");
+        }
+        self.calibrateZ = function() {
+            self._calibrate("Z");
+        }
 
         self._calibrate = function(axis) {
             //fetch current values

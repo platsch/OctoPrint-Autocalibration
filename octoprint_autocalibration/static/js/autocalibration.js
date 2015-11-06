@@ -144,7 +144,7 @@ $(function() {
 
         self._calibrateIteration = function(sign, endstopStatus) {
             if(endstopStatus) { //endstop still triggered, keep moving
-                self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign + " F500"});
+                self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign*0.1 + " F500"});
                 self.currentInterval += 0.1;
                 self.control.sendCustomCommand({ command: "M400" });
                 self.control.sendCustomCommand({ command: "G4 P0" });
@@ -152,7 +152,7 @@ $(function() {
                 self.statusMessage(self.statusMessage() + ".");
             }else{ //endstop untriggered, found maximum
                 //write new backlash to eeprom
-                var newBacklash = Math.round((1.0-self.currentInterval) * 10000) / 10000;
+                var newBacklash = Math.round((self.currentInterval) * 10000) / 10000;
                 self._setEepromValue(self.currentAxis + " backlash", newBacklash);
                 self.saveEeprom();
                 self.currentAxis = "";

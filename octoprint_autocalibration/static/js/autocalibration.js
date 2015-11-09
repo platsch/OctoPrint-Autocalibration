@@ -28,6 +28,9 @@ $(function() {
 
         self.currentAxis = "";
         self.currentInterval = 0;
+        self.currentIteration = 0;
+        self.calibrationResult = [];
+        self.calibrationStepSize = 0.01;
 
         self.onStartup = function() {
             $('#settings_plugin_autocalibration_link a').on('show', function(e) {
@@ -70,18 +73,19 @@ $(function() {
                         });
                     }
                     //ugly workaround...
+                    //check endstop status and call next iteration
                     if(self.M119RegExMinH != "" && self.currentAxis != "") {
                         if (new RegExp(self.M119RegExMinH).test(line)) {
-                            self._calibrateIteration(1, true);
+                            self._calibrationStep(1, true);
                         }
                         if (new RegExp(self.M119RegExMaxH).test(line)) {
-                            self._calibrateIteration(-1, true);
+                            self._calibrationStep(-1, true);
                         }
                         if (new RegExp(self.M119RegExMinL).test(line)) {
-                            self._calibrateIteration(1, false);
+                            self._calibrationStep(1, false);
                         }
                         if (new RegExp(self.M119RegExMaxL).test(line)) {
-                            self._calibrateIteration(-1, false);
+                            self._calibrationStep(-1, false);
                         }
                     }
                 });
@@ -115,14 +119,15 @@ $(function() {
             self.currentAxis = axis;
             self.currentInterval = 0.0;
 
-            setTimeout(function() {self._calibrateFirstIteration();}, 5000);
+            setTimeout(function() {self._calibrateIteration();}, 5000);
         }
 
-        self._calibrateFirstIteration = function() {
-            //set calibration to 0
-            self.statusMessage("Run calibration");
-            self._setEepromValue(self.currentAxis + " backlash", 0.0);
-            self.saveEeprom();
+        self._calibrateIteration = function() {
+            self.statusMessage("Run calibration iteration " + self.currentIteration+1);
+            if(iteration == 0) {
+                //set calibration to 0
+                self._setEepromValue(self.currentAxis + " backlash", 0.0);
+                self.saveEeprom();
 
                 self.M119RegExMinH = self.currentAxis.toLowerCase() + "_min:H";
                 self.M119RegExMaxH = self.currentAxis.toLowerCase() + "_max:H";
@@ -130,29 +135,32 @@ $(function() {
                 self.M119RegExMaxL = self.currentAxis.toLowerCase() + "_max:L";
                 //Recv: x_min:H y_max:H z_max:H
 
-            //relative positioning
-            self.control.sendCustomCommand({ command: "G91"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
-            self.control.sendCustomCommand({ command: "M400"});
+                //relative positioning
+                self.control.sendCustomCommand({ command: "G91"});
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "M400"});
 
-            //trigger endstop check
-            self.control.sendCustomCommand({ command: "M119"});
-        }
+                self.currentIteration += 1;
 
-        self._calibrateIteration = function(sign, endstopStatus) {
-            if(endstopStatus) { //endstop still triggered, keep moving
-                self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign*0.1 + " F500"});
-                self.currentInterval += 0.1;
-                self.control.sendCustomCommand({ command: "M400" });
-                self.control.sendCustomCommand({ command: "G4 P0" });
-                self.control.sendCustomCommand({ command: "M119" });
-                self.statusMessage(self.statusMessage() + ".");
-            }else{ //endstop untriggered, found maximum
-                //write new backlash to eeprom
-                var newBacklash = Math.round((self.currentInterval) * 10000) / 10000;
+                //trigger endstop check
+                self.control.sendCustomCommand({ command: "M119"});
+            }
+            if(iteration == 1) {
+                self.currentIteration +=1;
+                //trigger endstop check
+                self.control.sendCustomCommand({ command: "M119"});
+            }
+
+            if(iteration == 2) {
+                var newBacklash = 0;
+                //average results
+                self.calibrationResult.each(function(element) {
+                    newBacklash += element;
+                }
+                newBacklash = Math.round((self.newBacklash) * 10000) / 10000;
                 self._setEepromValue(self.currentAxis + " backlash", newBacklash);
                 self.saveEeprom();
                 self.currentAxis = "";
@@ -160,9 +168,26 @@ $(function() {
                 self.M119RegExMaxH = "";
                 self.M119RegExMinL = "";
                 self.M119RegExMaxL = "";
+                self.currentIteration = 0;
                 self.statusMessage("Set backlash to " + newBacklash);
                 //absolute positioning
                 self.control.sendCustomCommand({ command: "G90"});
+            }
+        }
+
+        self._calibrationStep = function(sign, endstopStatus) {
+            if(endstopStatus) { //endstop still triggered, keep moving
+                self.control.sendCustomCommand({ command: "G1 " + self.currentAxis + sign*self.calibrationStepSize + " F500"});
+                self.currentInterval += self.calibrationStepSize;
+                self.control.sendCustomCommand({ command: "M400" });
+                self.control.sendCustomCommand({ command: "G4 P0" });
+                self.control.sendCustomCommand({ command: "M119" });
+                self.statusMessage(self.statusMessage() + ".");
+            }else{ //endstop untriggered, found maximum
+                //store result
+                self.calibrationResult.push(self.currentInterval-self.calibrationStepSize);
+                self.currentInterval = 0;
+                self._calibrateIteration();
             }
         }
 

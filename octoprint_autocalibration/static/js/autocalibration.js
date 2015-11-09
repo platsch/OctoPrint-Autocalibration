@@ -165,7 +165,7 @@ $(function() {
                 else if(self.currentIteration > 2) {
                     var newBacklash = 0;
                     //average results
-                    results = self.calibrationResult;
+                    var results = self.calibrationResult;
                     for(i = 0; i < results.length; i++) {
                         newBacklash += results[i];
                     }

@@ -124,7 +124,7 @@ $(function() {
 
         self._calibrateIteration = function() {
             self.statusMessage("Run calibration iteration " + self.currentIteration+1);
-            if(iteration == 0) {
+            if(self.currentIteration == 0) {
                 //set calibration to 0
                 self._setEepromValue(self.currentAxis + " backlash", 0.0);
                 self.saveEeprom();
@@ -143,23 +143,21 @@ $(function() {
                 self.control.sendCustomCommand({ command: "M400"});
                 self.control.sendCustomCommand({ command: "M400"});
 
-                self.currentIteration += 1;
-
                 //trigger endstop check
                 self.control.sendCustomCommand({ command: "M119"});
             }
-            if(iteration == 1) {
-                self.currentIteration +=1;
+            if(self.currentIteration == 1) {
                 //trigger endstop check
                 self.control.sendCustomCommand({ command: "M119"});
             }
+            self.currentIteration +=1;
 
-            if(iteration == 2) {
+            if(self.currentIteration > 2) {
                 var newBacklash = 0;
                 //average results
                 self.calibrationResult.each(function(element) {
                     newBacklash += element;
-                }
+                });
                 newBacklash = Math.round((self.newBacklash) * 10000) / 10000;
                 self._setEepromValue(self.currentAxis + " backlash", newBacklash);
                 self.saveEeprom();

@@ -142,17 +142,24 @@ $(function() {
                 self.control.sendCustomCommand({ command: "M400"});
                 self.control.sendCustomCommand({ command: "M400"});
                 self.control.sendCustomCommand({ command: "M400"});
+                self.currentIteration +=1;
 
                 //trigger endstop check
                 self.control.sendCustomCommand({ command: "M119"});
             }
-            if(self.currentIteration == 1) {
+            else if(self.currentIteration > 0) {
+                self.control.sendCustomCommand({ command: "G28 " + self.currentAxis + "0" });
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "G4 P0"});
                 //trigger endstop check
+                self.currentIteration +=1;
                 self.control.sendCustomCommand({ command: "M119"});
             }
-            self.currentIteration +=1;
-
-            if(self.currentIteration > 2) {
+            else if(self.currentIteration > 2) {
                 var newBacklash = 0;
                 //average results
                 self.calibrationResult.each(function(element) {
@@ -168,6 +175,7 @@ $(function() {
                 self.M119RegExMaxL = "";
                 self.currentIteration = 0;
                 self.statusMessage("Set backlash to " + newBacklash);
+                self.calibrationResult = [];
                 //absolute positioning
                 self.control.sendCustomCommand({ command: "G90"});
             }

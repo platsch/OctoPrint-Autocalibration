@@ -9,7 +9,7 @@ Make sure your printer is running and connected to OctoPrint before you start th
 ## Requirements and Pitfalls
 
 * The Firmware must be Repetier based with active EEPROM-option.
-* If the printer has more multiple extruders with offset configured in the firmware, the homeposition is usually not directly at the endstop. You must set all extruder offsets to 0 before running the calibration. This might be improved in coming versions.
+* If the printer has multiple extruders with offset configured in the firmware, the home-position is usually not directly at the endstop. You must set all extruder offsets to 0 before running the calibration. This might be improved in coming versions.
 
 ## Setup
 

@@ -118,71 +118,72 @@ $(function() {
             self.currentAxis = axis;
             self.currentInterval = 0.0;
 
-            setTimeout(function() {self._calibrateIteration(3);}, 5000);
+            setTimeout(function() {self._calibrateIteration();}, 5000);
         }
 
-        self._calibrateIteration = function(iterations) {
-            self.statusMessage("Run calibration iteration " + self.currentIteration+1);
-            if(self.currentIteration == 0) {
-                //set calibration to 0
-                self._setEepromValue(self.currentAxis + " backlash", 0.0);
-                self.saveEeprom();
+        self._calibrateIteration = function() {
+            if(self.currentAxis != "") {
+                self.statusMessage("Run calibration iteration " + (self.currentIteration+1));
+            
+                if(self.currentIteration == 0) {
+                    //set calibration to 0
+                    self._setEepromValue(self.currentAxis + " backlash", 0.0);
+                    self.saveEeprom();
 
-                self.M119RegExMinH = self.currentAxis.toLowerCase() + "_min:H";
-                self.M119RegExMaxH = self.currentAxis.toLowerCase() + "_max:H";
-                self.M119RegExMinL = self.currentAxis.toLowerCase() + "_min:L";
-                self.M119RegExMaxL = self.currentAxis.toLowerCase() + "_max:L";
-                //Recv: x_min:H y_max:H z_max:H
+                    self.M119RegExMinH = self.currentAxis.toLowerCase() + "_min:H";
+                    self.M119RegExMaxH = self.currentAxis.toLowerCase() + "_max:H";
+                    self.M119RegExMinL = self.currentAxis.toLowerCase() + "_min:L";
+                    self.M119RegExMaxL = self.currentAxis.toLowerCase() + "_max:L";
+                    //Recv: x_min:H y_max:H z_max:H
 
-                //relative positioning
-                self.control.sendCustomCommand({ command: "G91"});
-                self.control.sendCustomCommand({ command: "G28 " + self.currentAxis + "0" });
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "G4 P0"})
-                self.currentIteration +=1;
+                    //relative positioning
+                    self.control.sendCustomCommand({ command: "G91"});
+                    self.control.sendCustomCommand({ command: "G28 " + self.currentAxis + "0" });
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "G4 P0"})
+                    self.currentIteration +=1;
 
-                //trigger endstop check
-                self.control.sendCustomCommand({ command: "M119"});
-            }
-            else if(iterations-1 >= self.currentIteration > 0) {
-                self.control.sendCustomCommand({ command: "G28 " + self.currentAxis + "0" });
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "M400"});
-                self.control.sendCustomCommand({ command: "G4 P0"});
-                //trigger endstop check
-                self.currentIteration +=1;
-                self.control.sendCustomCommand({ command: "M119"});
-            }
-            else if(self.currentIteration > iterations-1) {
-                var newBacklash = 0;
-                //average results
-                results = self.calibrationResult;
-                for(i = 0; i < results.length; i++) {
-                    newBacklash += results[i];
+                    //trigger endstop check
+                    self.control.sendCustomCommand({ command: "M119"});
                 }
-                //self.calibrationResult.each(function(element) {
-                //    newBacklash += element;
-                //});
-                newBacklash = Math.round((self.newBacklash) * 10000) / 10000;
-                self._setEepromValue(self.currentAxis + " backlash", newBacklash);
-                self.saveEeprom();
-                self.currentAxis = "";
-                self.M119RegExMinH = "";
-                self.M119RegExMaxH = "";
-                self.M119RegExMinL = "";
-                self.M119RegExMaxL = "";
-                self.currentIteration = 0;
-                self.statusMessage("Set backlash to " + newBacklash);
-                self.calibrationResult = [];
-                //absolute positioning
-                self.control.sendCustomCommand({ command: "G90"});
+                else if(2 >= self.currentIteration > 0) {
+                    self.control.sendCustomCommand({ command: "G28 " + self.currentAxis + "0" });
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "M400"});
+                    self.control.sendCustomCommand({ command: "G4 P0"});
+                    //trigger endstop check
+                    self.currentIteration +=1;
+                    self.control.sendCustomCommand({ command: "M119"});
+                }
+                else if(self.currentIteration > 2) {
+                    var newBacklash = 0;
+                    //average results
+                    results = self.calibrationResult;
+                    for(i = 0; i < results.length; i++) {
+                        newBacklash += results[i];
+                    }
+                    newBacklash = newBacklash/results.length;
+                    newBacklash = Math.round((newBacklash) * 10000) / 10000;
+                    self._setEepromValue(self.currentAxis + " backlash", newBacklash);
+                    self.saveEeprom();
+                    self.currentAxis = "";
+                    self.M119RegExMinH = "";
+                    self.M119RegExMaxH = "";
+                    self.M119RegExMinL = "";
+                    self.M119RegExMaxL = "";
+                    self.currentIteration = 0;
+                    self.statusMessage("Set backlash to " + newBacklash);
+                    self.calibrationResult = [];
+                    //absolute positioning
+                    self.control.sendCustomCommand({ command: "G90"});
+                }
             }
         }
 

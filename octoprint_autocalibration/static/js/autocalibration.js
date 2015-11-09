@@ -115,14 +115,13 @@ $(function() {
             self.statusMessage("Fetching eeprom data");
             self.loadEeprom();
             //move to endstop
-            self.control.sendCustomCommand({ command: "G28 " + axis + "0" });
             self.currentAxis = axis;
             self.currentInterval = 0.0;
 
-            setTimeout(function() {self._calibrateIteration();}, 5000);
+            setTimeout(function() {self._calibrateIteration(3);}, 5000);
         }
 
-        self._calibrateIteration = function() {
+        self._calibrateIteration = function(iterations) {
             self.statusMessage("Run calibration iteration " + self.currentIteration+1);
             if(self.currentIteration == 0) {
                 //set calibration to 0
@@ -137,17 +136,19 @@ $(function() {
 
                 //relative positioning
                 self.control.sendCustomCommand({ command: "G91"});
+                self.control.sendCustomCommand({ command: "G28 " + self.currentAxis + "0" });
                 self.control.sendCustomCommand({ command: "M400"});
                 self.control.sendCustomCommand({ command: "M400"});
                 self.control.sendCustomCommand({ command: "M400"});
                 self.control.sendCustomCommand({ command: "M400"});
                 self.control.sendCustomCommand({ command: "M400"});
+                self.control.sendCustomCommand({ command: "G4 P0"})
                 self.currentIteration +=1;
 
                 //trigger endstop check
                 self.control.sendCustomCommand({ command: "M119"});
             }
-            else if(self.currentIteration > 0) {
+            else if(iterations-1 >= self.currentIteration > 0) {
                 self.control.sendCustomCommand({ command: "G28 " + self.currentAxis + "0" });
                 self.control.sendCustomCommand({ command: "M400"});
                 self.control.sendCustomCommand({ command: "M400"});
@@ -159,12 +160,16 @@ $(function() {
                 self.currentIteration +=1;
                 self.control.sendCustomCommand({ command: "M119"});
             }
-            else if(self.currentIteration > 2) {
+            else if(self.currentIteration > iterations-1) {
                 var newBacklash = 0;
                 //average results
-                self.calibrationResult.each(function(element) {
-                    newBacklash += element;
-                });
+                results = self.calibrationResult;
+                for(i = 0; i < results.length; i++) {
+                    newBacklash += results[i];
+                }
+                //self.calibrationResult.each(function(element) {
+                //    newBacklash += element;
+                //});
                 newBacklash = Math.round((self.newBacklash) * 10000) / 10000;
                 self._setEepromValue(self.currentAxis + " backlash", newBacklash);
                 self.saveEeprom();

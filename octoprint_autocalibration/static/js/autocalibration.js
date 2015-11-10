@@ -32,6 +32,8 @@ $(function() {
         self.calibrationResult = [];
         self.calibrationStepSize = 0.01;
 
+        self.extruderOffset = [];
+
         self.onStartup = function() {
             $('#settings_plugin_autocalibration_link a').on('show', function(e) {
                 if (self.isConnected() && !self.isRepetierFirmware())
@@ -128,7 +130,6 @@ $(function() {
                 if(self.currentIteration == 0) {
                     //set calibration to 0
                     self._setEepromValue(self.currentAxis + " backlash", 0.0);
-                    self.saveEeprom();
 
                     self.M119RegExMinH = self.currentAxis.toLowerCase() + "_min:H";
                     self.M119RegExMaxH = self.currentAxis.toLowerCase() + "_max:H";
@@ -136,8 +137,22 @@ $(function() {
                     self.M119RegExMaxL = self.currentAxis.toLowerCase() + "_max:L";
                     //Recv: x_min:H y_max:H z_max:H
 
+                    //store extruder offsets
+                    var i = 1;
+                    do {
+                        var offset = self._getEepromValue("Extr." + i + " " + self.currentAxis + "-offset");
+                        if(offset) {
+                            self.extruderOffset.push(offset);
+                            self._setEepromValue("Extr." + i + " " + self.currentAxis + "-offset", 0);
+                        }
+                        i++;
+                    }while(offset);
+
+                    self.saveEeprom();
+
                     //relative positioning
                     self.control.sendCustomCommand({ command: "G91"});
+                    //home axis
                     self.control.sendCustomCommand({ command: "G28 " + self.currentAxis + "0" });
                     self.control.sendCustomCommand({ command: "M400"});
                     self.control.sendCustomCommand({ command: "M400"});
@@ -172,6 +187,12 @@ $(function() {
                     newBacklash = newBacklash/results.length;
                     newBacklash = Math.round((newBacklash) * 10000) / 10000;
                     self._setEepromValue(self.currentAxis + " backlash", newBacklash);
+
+                    //restore extruder offset
+                    for(var i = 0; i < self.extruderOffset.length; i++) {
+                        self._setEepromValue("Extr." + (i+1) + " " + self.currentAxis + "-offset", self.extruderOffset[i]);
+                    }
+
                     self.saveEeprom();
                     self.currentAxis = "";
                     self.M119RegExMinH = "";
@@ -181,6 +202,7 @@ $(function() {
                     self.currentIteration = 0;
                     self.statusMessage("Set backlash to " + newBacklash);
                     self.calibrationResult = [];
+                    self.extruderOffset = [];
                     //absolute positioning
                     self.control.sendCustomCommand({ command: "G90"});
                 }
